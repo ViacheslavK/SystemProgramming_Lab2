@@ -1,10 +1,12 @@
-// HelloWindowsDesktop.cpp
-// compile with: /D_UNICODE /DUNICODE /DWIN32 /D_WINDOWS /c
-
 #include <windows.h>
 #include <stdlib.h>
 #include <string.h>
-#include <tchar.h>
+#include <string>
+#include <tchar.h> 
+#include <stdio.h>
+#include <atlstr.h>
+#include <strsafe.h>
+
 #define ID_BTNCRT_FLDS 0
 #define ID_BTNDEL_FLDS 1
 #define ID_BTNTRA_FLDS 2
@@ -23,6 +25,9 @@ static TCHAR szWindowClass[] = _T("DesktopApp");
 
 // The string that appears in the application's title bar.
 static TCHAR szTitle[] = _T("Files and Folders Management Lab Work");
+
+void DisplayErrorBox(LPTSTR lpszFunction);
+std::wstring s2ws(const std::string& s);
 
 HINSTANCE hInst;
 
@@ -225,8 +230,24 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
     PAINTSTRUCT ps;
     HDC hdc;
+    HANDLE hFile;
     TCHAR greeting[] = _T("Click on next buttons one-by-one");
     TCHAR greeting2[] = _T("Click on second button");
+
+    WIN32_FIND_DATA ffd;
+    LARGE_INTEGER filesize;
+    TCHAR szDir[MAX_PATH];
+    size_t length_of_arg;
+    HANDLE hFind = INVALID_HANDLE_VALUE;
+    DWORD dwError = 0;
+
+    LPCWSTR searchFolder = L"D:\\CopyTest\\*";
+    LPCSTR target_folder = "..\\FILE11\\FILE12";
+    LPCSTR source;
+    LPCSTR target;
+
+    std::string filename;
+
     switch (message)
     {
     case WM_PAINT:
@@ -250,7 +271,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         {
         case ID_BTNCRT_FLDS:
             CreateDirectoryA("..\\FILE11", NULL);
-            CreateDirectoryA("..\\FILE11\\FILE12", NULL);
+            CreateDirectoryA(target_folder, NULL);
             CreateDirectoryA("..\\FILE11\\FILE12\\FILE13", NULL);
             CreateDirectoryA("..\\FILE21", NULL);
             CreateDirectoryA("..\\FILE21\\FILE22", NULL);
@@ -258,11 +279,65 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             break;
         case ID_BTNDEL_FLDS:
             RemoveDirectoryA("..\\FILE11\\FILE12\\FILE13");
-            RemoveDirectoryA("..\\FILE11\\FILE12");
+            RemoveDirectoryA(target_folder);
             RemoveDirectoryA("..\\FILE11");
             RemoveDirectoryA("..\\FILE21\\FILE22\\FILE23");
             RemoveDirectoryA("..\\FILE21\\FILE22");
             RemoveDirectoryA("..\\FILE21");
+            break;
+        case ID_BTNTRA_FLDS:
+            break;
+        case ID_BTNCRE_FLDS:
+            hFile = CreateFileA("..\\FILE11\\FILE12\\zero.txt",
+                GENERIC_READ | GENERIC_WRITE, // open for writing 
+                0, // do not share 
+                0, // default security 
+                CREATE_NEW, // overwrite existing 
+                0, // normal file 
+                0); // no attr. Template
+            break;
+        case ID_BTNCPY_FLDS:
+            // Init search
+            hFind = FindFirstFile(searchFolder, &ffd);
+            
+            // If search folder is invalid - return error
+            if (INVALID_HANDLE_VALUE == hFind)
+            {
+                DisplayErrorBox(LPTSTR("FindFirstFile"));
+                return dwError;
+            }
+
+            // Execute search
+            do
+            {
+                if (ffd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
+                {
+                    _tprintf(TEXT("  %s   <DIR>\n"), ffd.cFileName);
+                    CopyFile(ffd.cFileName, L"..\\FILE11\\FILE12\\1.txt", TRUE);
+                }
+                else
+                {
+                    filesize.LowPart = ffd.nFileSizeLow;
+                    filesize.HighPart = ffd.nFileSizeHigh;
+                    _tprintf(TEXT("  %s   %ld bytes\n"), ffd.cFileName, filesize.QuadPart);
+                    std::wstring ws(ffd.cFileName);
+                    std::string temp_source = "D:\\CopyTest\\" + std::string(ws.begin(), ws.end());
+                    std::string temp_target = "..\\FILE11\\FILE12\\" + std::string(ws.begin(), ws.end());
+                    std::wstring middle_source = s2ws(temp_source);
+                    LPCWSTR source = middle_source.c_str();
+                    std::wstring middle_target = s2ws(temp_target);
+                    LPCWSTR target = middle_target.c_str();
+                    CopyFile(source, target, TRUE);
+                }
+            } while (FindNextFile(hFind, &ffd) != 0);
+
+            dwError = GetLastError();
+            if (dwError != ERROR_NO_MORE_FILES)
+            {
+                DisplayErrorBox(LPTSTR("FindFirstFile"));
+            }
+
+            FindClose(hFind);
             break;
         default:
             break;
@@ -274,4 +349,48 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
     }
 
     return 0;
+}
+
+void DisplayErrorBox(LPTSTR lpszFunction)
+{
+    // Retrieve the system error message for the last-error code
+
+    LPVOID lpMsgBuf;
+    LPVOID lpDisplayBuf;
+    DWORD dw = GetLastError();
+
+    FormatMessage(
+        FORMAT_MESSAGE_ALLOCATE_BUFFER |
+        FORMAT_MESSAGE_FROM_SYSTEM |
+        FORMAT_MESSAGE_IGNORE_INSERTS,
+        NULL,
+        dw,
+        MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+        (LPTSTR)&lpMsgBuf,
+        0, NULL);
+
+    // Display the error message and clean up
+
+    lpDisplayBuf = (LPVOID)LocalAlloc(LMEM_ZEROINIT,
+        (lstrlen((LPCTSTR)lpMsgBuf) + lstrlen((LPCTSTR)lpszFunction) + 40) * sizeof(TCHAR));
+    StringCchPrintf((LPTSTR)lpDisplayBuf,
+        LocalSize(lpDisplayBuf) / sizeof(TCHAR),
+        TEXT("%s failed with error %d: %s"),
+        lpszFunction, dw, lpMsgBuf);
+    MessageBox(NULL, (LPCTSTR)lpDisplayBuf, TEXT("Error"), MB_OK);
+
+    LocalFree(lpMsgBuf);
+    LocalFree(lpDisplayBuf);
+}
+
+std::wstring s2ws(const std::string& s)
+{
+    int len;
+    int slength = (int)s.length() + 1;
+    len = MultiByteToWideChar(CP_ACP, 0, s.c_str(), slength, 0, 0);
+    wchar_t* buf = new wchar_t[len];
+    MultiByteToWideChar(CP_ACP, 0, s.c_str(), slength, buf, len);
+    std::wstring r(buf);
+    delete[] buf;
+    return r;
 }
