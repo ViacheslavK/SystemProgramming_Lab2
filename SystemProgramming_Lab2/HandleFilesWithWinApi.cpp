@@ -286,6 +286,10 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             RemoveDirectoryA("..\\FILE21");
             break;
         case ID_BTNTRA_FLDS:
+            // Обхід каталогів 
+            // Обійти першу систему директорій
+            // починаючи з кореневого каталогу 
+            // та повернутись в до FILE21
             break;
         case ID_BTNCRE_FLDS:
             hFile = CreateFileA("..\\FILE11\\FILE12\\zero.txt",
@@ -321,12 +325,14 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                     filesize.HighPart = ffd.nFileSizeHigh;
                     _tprintf(TEXT("  %s   %ld bytes\n"), ffd.cFileName, filesize.QuadPart);
                     std::wstring ws(ffd.cFileName);
+                    // Preparation of copy files via filename transformation
                     std::string temp_source = "D:\\CopyTest\\" + std::string(ws.begin(), ws.end());
                     std::string temp_target = "..\\FILE11\\FILE12\\" + std::string(ws.begin(), ws.end());
                     std::wstring middle_source = s2ws(temp_source);
                     LPCWSTR source = middle_source.c_str();
                     std::wstring middle_target = s2ws(temp_target);
                     LPCWSTR target = middle_target.c_str();
+                    // Execute file copy
                     CopyFile(source, target, TRUE);
                 }
             } while (FindNextFile(hFind, &ffd) != 0);
@@ -338,6 +344,28 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             }
 
             FindClose(hFind);
+            break;
+        case ID_BTNSRC_FLDS:
+            // Пошук та сортування файлів 
+            // Знайти файли у вказаній директорії 
+            // за другим символом імені файлу
+            break;
+        case ID_BTNREA_FLDS:
+            // Зчитування  з файлу 
+            // Відкрити один з нетекстових файлів і визначити розмір 
+            break;
+        case ID_BTNWRT_FLDS:
+            // Запис у файл 
+            // дописати до нього свій рік народжєення
+            break;
+        case ID_BTNBLC_FLDS:
+            // Блокування , розблокування файлу 
+            // Встановити роздільне блокування першого 1кб файлу 
+            break;
+        case ID_BTNATT_FLDS:
+            // Встановити значення атрибутів для файлу 
+            // Hidden 
+            // Час створення
             break;
         default:
             break;
