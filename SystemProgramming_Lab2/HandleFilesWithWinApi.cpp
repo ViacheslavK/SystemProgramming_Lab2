@@ -301,8 +301,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             RemoveDirectoryA("..\\FILE21");
             break;
         case ID_BTNTRA_FLDS:
-            // ќбх≥д каталог≥в 
-            // FILE11 -> FILE12 -> FILE13 -> та FILE21
+            // Go throug directories
+            // FILE11 -> FILE12 -> FILE13 -> and then go to FILE21
 
             hwndDirTraversalTrace = CreateWindowEx(
                 0, L"EDIT",   // predefined class 
@@ -315,10 +315,10 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                 NULL);
             
             dwRet = GetCurrentDirectory(BUFSIZE, Buffer);
-            SetCurrentDirectory(L"..\\FILE11");
 
             TraversalFolder(L"..\\FILE11", hwndDirTraversalTrace);
             SetCurrentDirectory(L"..\\FILE21");
+            SetCurrentDirectory(L"..");
             break;
         case ID_BTNCRE_FLDS:
             hFile = CreateFileA("..\\FILE11\\FILE12\\zero.txt",
@@ -417,7 +417,6 @@ void TraversalFolder(const WCHAR *folderName, HWND window)
     if (GetLastError() == ERROR_FILE_NOT_FOUND)
     {
         SetWindowTextA(window, "No more files here");
-        Sleep(1000);
         return;
     }
     do
@@ -427,20 +426,15 @@ void TraversalFolder(const WCHAR *folderName, HWND window)
             if (FindFileData.dwFileAttributes == 16)
             {
                 SetCurrentDirectory(FindFileData.cFileName);
-                SetWindowTextA(window, "Directory is changed");
-                Sleep(1000);
                 TraversalFolder(FindFileData.cFileName, window);
             }
             else {
-                SetWindowTextA(window, "Upper level - no change");
-                Sleep(1000);
                 break;
             }       
         }
         FindNextFile(hFind, &FindFileData);
     } while (GetLastError() != ERROR_NO_MORE_FILES);
     SetWindowTextA(window, "Search is done");
-    Sleep(1000);
     FindClose(hFind);
 }
 

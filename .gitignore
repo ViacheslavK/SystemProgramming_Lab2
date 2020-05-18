@@ -338,3 +338,29 @@ ASALocalRun/
 
 # BeatPulse healthcheck temp database
 healthchecksdb
+/FILE11/FILE12/zero.txt
+/FILE11/FILE12/unins000.exe
+/FILE11/FILE12/unins000.dat
+/FILE11/FILE12/startlazarus.exe
+/FILE11/FILE12/ssleay32.dll
+/FILE11/FILE12/README.txt
+/FILE11/FILE12/Qt5Pas1.dll
+/FILE11/FILE12/Qt4Pas5.dll
+/FILE11/FILE12/Makefile.fpc
+/FILE11/FILE12/Makefile
+/FILE11/FILE12/localize.sh
+/FILE11/FILE12/localize.bat
+/FILE11/FILE12/libeay32.dll
+/FILE11/FILE12/lazbuild.exe
+/FILE11/FILE12/lazarus.exe
+/FILE11/FILE12/Lazarus Wiki Help.url
+/FILE11/FILE12/Lazarus Home Page.url
+/FILE11/FILE12/Lazarus Forums.url
+/FILE11/FILE12/fpmake_proc.inc
+/FILE11/FILE12/fpmake_add.inc
+/FILE11/FILE12/fpmake.pp
+/FILE11/FILE12/environmentoptions.xml
+/FILE11/FILE12/COPYING.txt
+/FILE11/FILE12/COPYING.modifiedLGPL.txt
+/FILE11/FILE12/COPYING.LGPL.txt
+/FILE11/FILE12/COPYING.GPL.txt
