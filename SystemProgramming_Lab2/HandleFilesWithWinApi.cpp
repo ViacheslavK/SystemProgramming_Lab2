@@ -6,6 +6,8 @@
 #include <stdio.h>
 #include <atlstr.h>
 #include <strsafe.h>
+#include <windowsx.h>
+#include <map>
 
 #define ID_BTNCRT_FLDS 0
 #define ID_BTNDEL_FLDS 1
@@ -17,6 +19,9 @@
 #define ID_BTNWRT_FLDS 7
 #define ID_BTNBLC_FLDS 8
 #define ID_BTNATT_FLDS 9
+#define ID_DIR_VIEW 10
+
+#define BUFSIZE MAX_PATH
 
 // Global variables
 
@@ -27,6 +32,7 @@ static TCHAR szWindowClass[] = _T("DesktopApp");
 static TCHAR szTitle[] = _T("Files and Folders Management Lab Work");
 
 void DisplayErrorBox(LPTSTR lpszFunction);
+void TraversalFolder(const WCHAR *folderName, HWND window);
 std::wstring s2ws(const std::string& s);
 
 HINSTANCE hInst;
@@ -120,7 +126,7 @@ int CALLBACK WinMain(
         180, 25,
         hWnd, (HMENU)ID_BTNTRA_FLDS,
         (HINSTANCE)GetWindowLongPtr(hWnd, GWLP_HINSTANCE),
-        NULL);      
+        NULL);
 
     HWND hwndCrtFileButton = CreateWindow(
         L"BUTTON", 
@@ -205,8 +211,7 @@ int CALLBACK WinMain(
     // The parameters to ShowWindow explained:
     // hWnd: the value returned from CreateWindow
     // nCmdShow: the fourth parameter from WinMain
-    ShowWindow(hWnd,
-        nCmdShow);
+    ShowWindow(hWnd, nCmdShow);
     UpdateWindow(hWnd);
 
     // Main message loop:
@@ -231,6 +236,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
     PAINTSTRUCT ps;
     HDC hdc;
     HANDLE hFile;
+    HWND hwndDirTraversalTrace;
     TCHAR greeting[] = _T("Click on next buttons one-by-one");
     TCHAR greeting2[] = _T("Click on second button");
 
@@ -247,6 +253,15 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
     LPCSTR target;
 
     std::string filename;
+    std::string str;
+    LPCSTR string_source;
+
+    TCHAR Buffer[BUFSIZE];
+    DWORD dwRet;
+    size_t cSize = 0;
+    WCHAR wc;
+
+    std::map<std::string, bool> foldersLookupTable;
 
     switch (message)
     {
@@ -287,9 +302,23 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             break;
         case ID_BTNTRA_FLDS:
             // Обхід каталогів 
-            // Обійти першу систему директорій
-            // починаючи з кореневого каталогу 
-            // та повернутись в до FILE21
+            // FILE11 -> FILE12 -> FILE13 -> та FILE21
+
+            hwndDirTraversalTrace = CreateWindowEx(
+                0, L"EDIT",   // predefined class 
+                NULL,         // no window title 
+                WS_CHILD | WS_VISIBLE | WS_BORDER | WS_DISABLED | WM_SETTEXT | ES_LEFT | ES_READONLY,
+                200, 90, 180, 25,   // set size in WM_SIZE message 
+                hWnd,         // parent window 
+                (HMENU)ID_DIR_VIEW,
+                (HINSTANCE)GetWindowLongPtr(hWnd, GWLP_HINSTANCE),
+                NULL);
+            
+            dwRet = GetCurrentDirectory(BUFSIZE, Buffer);
+            SetCurrentDirectory(L"..\\FILE11");
+
+            TraversalFolder(L"..\\FILE11", hwndDirTraversalTrace);
+            SetCurrentDirectory(L"..\\FILE21");
             break;
         case ID_BTNCRE_FLDS:
             hFile = CreateFileA("..\\FILE11\\FILE12\\zero.txt",
@@ -377,6 +406,42 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
     }
 
     return 0;
+}
+
+void TraversalFolder(const WCHAR *folderName, HWND window)
+{
+    WIN32_FIND_DATA FindFileData;
+    HANDLE hFind;
+
+    hFind = FindFirstFile(L"*", &FindFileData);
+    if (GetLastError() == ERROR_FILE_NOT_FOUND)
+    {
+        SetWindowTextA(window, "No more files here");
+        Sleep(1000);
+        return;
+    }
+    do
+    {
+        if (wcscmp(L".", FindFileData.cFileName) && wcscmp(L"..", FindFileData.cFileName))
+        {
+            if (FindFileData.dwFileAttributes == 16)
+            {
+                SetCurrentDirectory(FindFileData.cFileName);
+                SetWindowTextA(window, "Directory is changed");
+                Sleep(1000);
+                TraversalFolder(FindFileData.cFileName, window);
+            }
+            else {
+                SetWindowTextA(window, "Upper level - no change");
+                Sleep(1000);
+                break;
+            }       
+        }
+        FindNextFile(hFind, &FindFileData);
+    } while (GetLastError() != ERROR_NO_MORE_FILES);
+    SetWindowTextA(window, "Search is done");
+    Sleep(1000);
+    FindClose(hFind);
 }
 
 void DisplayErrorBox(LPTSTR lpszFunction)
