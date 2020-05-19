@@ -33,6 +33,8 @@ static TCHAR szTitle[] = _T("Files and Folders Management Lab Work");
 
 void DisplayErrorBox(LPTSTR lpszFunction);
 void TraversalFolder(const WCHAR *folderName, HWND window);
+void SearchForDefinedFile(WCHAR fileName, HWND window);
+
 std::wstring s2ws(const std::string& s);
 
 HINSTANCE hInst;
@@ -260,6 +262,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
     DWORD dwRet;
     size_t cSize = 0;
     WCHAR wc;
+    WCHAR searchCriteria = 'O';
 
     std::map<std::string, bool> foldersLookupTable;
 
@@ -375,6 +378,20 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             FindClose(hFind);
             break;
         case ID_BTNSRC_FLDS:
+
+            hwndDirTraversalTrace = CreateWindowEx(
+                0, L"EDIT",   // predefined class 
+                NULL,         // no window title 
+                WS_CHILD | WS_VISIBLE | WS_BORDER | WS_DISABLED | WM_SETTEXT | ES_LEFT | ES_READONLY,
+                200, 120, 180, 25,   // set size in WM_SIZE message 
+                hWnd,         // parent window 
+                (HMENU)ID_DIR_VIEW,
+                (HINSTANCE)GetWindowLongPtr(hWnd, GWLP_HINSTANCE),
+                NULL);
+
+            dwRet = GetCurrentDirectory(BUFSIZE, Buffer);
+            SetCurrentDirectory(L"..\\FILE11\\FILE12\\");
+            SearchForDefinedFile(searchCriteria, hwndDirTraversalTrace);
             // Пошук та сортування файлів 
             // Знайти файли у вказаній директорії 
             // за другим символом імені файлу
@@ -406,6 +423,41 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
     }
 
     return 0;
+}
+
+void SearchForDefinedFile(WCHAR fileName, HWND window)
+{
+    WIN32_FIND_DATA FindFileData;
+    HANDLE hFind;
+    INT32 counter = 0;
+
+    hFind = FindFirstFile(L"*", &FindFileData);
+    if (GetLastError() == ERROR_FILE_NOT_FOUND)
+    {
+        SetWindowTextA(window, "No such files here");
+        return;
+    }
+    do
+    {
+        if (wcscmp(L".", FindFileData.cFileName) && wcscmp(L"..", FindFileData.cFileName))
+        {
+            if (FindFileData.dwFileAttributes == 32 and FindFileData.cFileName[1] == fileName)
+            {
+                counter += 1;
+            }
+        }
+        FindNextFile(hFind, &FindFileData);
+    } while (GetLastError() != ERROR_NO_MORE_FILES);
+
+    int msgboxID = MessageBox(
+        NULL,
+        (LPCWSTR)counter,
+        (LPCWSTR)L"Number of files",
+        MB_ICONINFORMATION | MB_OK
+    );
+
+    //SetWindowTextA(window, (LPCSTR)counter);
+    FindClose(hFind);
 }
 
 void TraversalFolder(const WCHAR *folderName, HWND window)
