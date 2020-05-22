@@ -36,6 +36,14 @@ void TraversalFolder(const WCHAR *folderName, HWND window);
 void SearchForDefinedFile(WCHAR fileName, HWND window);
 
 std::wstring s2ws(const std::string& s);
+WIN32_FIND_DATA FindFileData;
+LPDWORD FindedFileSize;
+int msgboxID;
+
+HANDLE hAppend;
+DWORD  dwBytesRead, dwBytesWritten, dwPos;
+BYTE   buff[4096];
+std::string strText;
 
 HINSTANCE hInst;
 
@@ -263,6 +271,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
     size_t cSize = 0;
     WCHAR wc;
     WCHAR searchCriteria = 'O';
+    INT32 size;
 
     std::map<std::string, bool> foldersLookupTable;
 
@@ -389,20 +398,60 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                 (HINSTANCE)GetWindowLongPtr(hWnd, GWLP_HINSTANCE),
                 NULL);
 
+            // Find and count all files, where second char is the same, as search criteria value
             dwRet = GetCurrentDirectory(BUFSIZE, Buffer);
             SetCurrentDirectory(L"..\\FILE11\\FILE12\\");
+            searchCriteria = 'a';
             SearchForDefinedFile(searchCriteria, hwndDirTraversalTrace);
-            // Пошук та сортування файлів 
-            // Знайти файли у вказаній директорії 
-            // за другим символом імені файлу
             break;
         case ID_BTNREA_FLDS:
-            // Зчитування  з файлу 
-            // Відкрити один з нетекстових файлів і визначити розмір 
+            // Read file:
+            // Open one of non-text and get it's size
+            SetCurrentDirectory(L"..\\FILE11\\FILE12\\");
+            hFind = FindFirstFile(L"lazarus.exe", &FindFileData);
+            size = (INT32)(FindFileData.nFileSizeLow - FindFileData.nFileSizeHigh);
+            msgboxID = MessageBox(
+                NULL,
+                s2ws(std::to_string(size)).c_str(),
+                (LPCWSTR)L"Size of file in bytes",
+                MB_ICONINFORMATION | MB_OK
+            );
+            FindClose(hFind);
             break;
         case ID_BTNWRT_FLDS:
-            // Запис у файл 
-            // дописати до нього свій рік народжєення
+            // Write to file
+            // Add to the file birth year
+            SetCurrentDirectory(L"..\\FILE11\\FILE12\\");
+            hAppend = FindFirstFile(L"Makefile.fpc", &FindFileData);
+            // Open the existing file, or if the file does not exist,
+            // create a new file.
+
+            hAppend = CreateFile(L"Makefile.fpc", // open Two.txt
+                FILE_APPEND_DATA,         // open for writing
+                FILE_SHARE_READ,          // allow multiple readers
+                NULL,                     // no security
+                OPEN_ALWAYS,              // open or create
+                FILE_ATTRIBUTE_NORMAL,    // normal file
+                NULL);                    // no attr. template
+
+            if (hAppend == INVALID_HANDLE_VALUE)
+            {
+                printf("Could not open Makefile.fpc");
+                return 1;
+            }
+
+            // Lock the second file to prevent another process from
+            // accessing it while writing to it. Unlock the file when writing is complete.
+            dwBytesRead = (DWORD)"1984";
+            strText = "1984";
+
+            dwPos = SetFilePointer(hAppend, 0, NULL, FILE_END);
+            LockFile(hAppend, dwPos, 0, dwBytesRead, 0);
+            WriteFile(hAppend, strText.c_str(), strText.size(), &dwBytesWritten, NULL);
+            UnlockFile(hAppend, dwPos, 0, dwBytesRead, 0);
+
+            // Close handle
+            CloseHandle(hAppend);
             break;
         case ID_BTNBLC_FLDS:
             // Блокування , розблокування файлу 
@@ -451,12 +500,11 @@ void SearchForDefinedFile(WCHAR fileName, HWND window)
 
     int msgboxID = MessageBox(
         NULL,
-        (LPCWSTR)counter,
+        s2ws(std::to_string(counter)).c_str(),
         (LPCWSTR)L"Number of files",
         MB_ICONINFORMATION | MB_OK
     );
 
-    //SetWindowTextA(window, (LPCSTR)counter);
     FindClose(hFind);
 }
 
