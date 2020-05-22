@@ -41,7 +41,9 @@ LPDWORD FindedFileSize;
 int msgboxID;
 
 HANDLE hAppend;
-DWORD  dwBytesRead, dwBytesWritten, dwPos;
+HANDLE hLockedBlock;
+HANDLE hChangeAttrs;
+DWORD  dwBytesRead, dwBytesWritten, dwPos, fileAttrs;
 BYTE   buff[4096];
 std::string strText;
 
@@ -446,21 +448,50 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             strText = "1984";
 
             dwPos = SetFilePointer(hAppend, 0, NULL, FILE_END);
-            LockFile(hAppend, dwPos, 0, dwBytesRead, 0);
             WriteFile(hAppend, strText.c_str(), strText.size(), &dwBytesWritten, NULL);
-            UnlockFile(hAppend, dwPos, 0, dwBytesRead, 0);
-
             // Close handle
             CloseHandle(hAppend);
             break;
         case ID_BTNBLC_FLDS:
-            // Блокування , розблокування файлу 
-            // Встановити роздільне блокування першого 1кб файлу 
+            // Lock and unclock file
+            // Set lock for the first KB of file
+            SetCurrentDirectory(L"..\\FILE11\\FILE12\\");
+            hLockedBlock = FindFirstFile(L"lazarus.exe", &FindFileData);
+            LockFile(hLockedBlock, 1024, 0, dwBytesRead, 0);
+            msgboxID = MessageBox(
+                NULL,
+                (LPCWSTR)L"Locked",
+                (LPCWSTR)L"Locked",
+                MB_ICONINFORMATION | MB_OK
+            );
+            UnlockFile(hLockedBlock, 1024, 0, dwBytesRead, 0);
+            msgboxID = MessageBox(
+                NULL,
+                (LPCWSTR)L"UnLocked",
+                (LPCWSTR)L"UnLocked",
+                MB_ICONINFORMATION | MB_OK
+            );
             break;
         case ID_BTNATT_FLDS:
-            // Встановити значення атрибутів для файлу 
+            // Set file attributes
             // Hidden 
-            // Час створення
+            // Creation time
+            SetCurrentDirectory(L"..\\FILE11\\FILE12\\");
+            fileAttrs = GetFileAttributesA("Makefile.fpc");
+            msgboxID = MessageBox(
+                NULL,
+                s2ws(std::to_string(fileAttrs)).c_str(),
+                (LPCWSTR)L"Get file attrs before",
+                MB_ICONINFORMATION | MB_OK
+            );
+            SetFileAttributesA("Makefile.fpc", (DWORD)2);
+            fileAttrs = GetFileAttributesA("Makefile.fpc");
+            msgboxID = MessageBox(
+                NULL,
+                s2ws(std::to_string(fileAttrs)).c_str(),
+                (LPCWSTR)L"Get file attrs after",
+                MB_ICONINFORMATION | MB_OK
+            );
             break;
         default:
             break;
